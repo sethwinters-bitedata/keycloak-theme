@@ -5,20 +5,15 @@ import type { PageProps } from "keycloakify/login/pages/PageProps";
 import { useGetClassName } from "keycloakify/login/lib/useGetClassName";
 import type { KcContext } from "../kcContext";
 import type { I18n } from "../i18n";
-//Cloudflare Turnsile import
 import Turnstile from "react-turnstile";
 
-const my_custom_param = new URL(window.location.href).searchParams.get(
-  "my_custom_param",
-);
+const my_custom_param = new URL(window.location.href).searchParams.get("my_custom_param");
 
 if (my_custom_param !== null) {
   console.log("my_custom_param:", my_custom_param);
 }
 
-export default function Login(
-  props: PageProps<Extract<KcContext, { pageId: "login.ftl" }>, I18n>,
-) {
+export default function Login(props: PageProps<Extract<KcContext, { pageId: "login.ftl" }>, I18n>) {
   const { kcContext, i18n, doUseDefaultCss, Template, classes } = props;
 
   const { getClassName } = useGetClassName({
@@ -26,22 +21,12 @@ export default function Login(
     classes,
   });
 
-  const {
-    social,
-    realm,
-    url,
-    usernameHidden,
-    login,
-    auth,
-    registrationDisabled,
-  } = kcContext;
+  const { social, realm, url, usernameHidden, login, auth, registrationDisabled } = kcContext;
 
   const { msg, msgStr } = i18n;
 
   const [isLoginButtonDisabled, setIsLoginButtonDisabled] = useState(true);
-
   const [errorMessage, setErrorMessage] = useState("");
-
   const [loadingMessage, setLoadingMessage] = useState("Loading");
 
   const onSubmit = useConstCallback<FormEventHandler<HTMLFormElement>>((e) => {
@@ -51,30 +36,26 @@ export default function Login(
 
     const formElement = e.target as HTMLFormElement;
 
-    //NOTE: Even if we login with email Keycloak expect username and password in
-    //the POST request.
-    formElement
-      .querySelector("input[name='email']")
-      ?.setAttribute("name", "username");
+    formElement.querySelector("input[name='email']")?.setAttribute("name", "username");
 
     formElement.submit();
   });
 
   const handleTurnstileSuccess = () => {
-    // Send this token to your backend for verification
     setIsLoginButtonDisabled(false);
     setErrorMessage("");
     setLoadingMessage("");
   };
 
   const handleTurnstileError = (error: string) => {
-    if (error == "Failed to load Turnstile.") {
+    if (error === "Failed to load Turnstile.") {
       setIsLoginButtonDisabled(false);
       setErrorMessage("");
     } else {
       setIsLoginButtonDisabled(true);
       setErrorMessage(error);
     }
+
     console.log("Turnstile Error:", error);
     setLoadingMessage("");
   };
@@ -82,74 +63,44 @@ export default function Login(
   return (
     <Template
       {...{ kcContext, i18n, doUseDefaultCss, classes }}
-      displayInfo={
-        realm.password && realm.registrationAllowed && !registrationDisabled
-      }
+      displayInfo={realm.password && realm.registrationAllowed && !registrationDisabled}
       displayWide={realm.password && social.providers !== undefined}
-      headerNode={msg("doLogIn")}
+      headerNode={msg("loginAccountTitle")}
       infoNode={
-        <div id="kc-registration">
-          <span>
-            {msg("noAccount")}
-            <a tabIndex={6} href={url.registrationUrl}>
-              {msg("doRegister")}
-            </a>
-          </span>
+        <div id="kc-registration-container">
+          <div id="kc-registration">
+            <span>
+              {msg("noAccount")} <a href={url.registrationUrl}>{msg("doRegister")}</a>
+            </span>
+          </div>
         </div>
       }
     >
-      <div
-        id="kc-form"
-        className={clsx(
-          realm.password &&
-            social.providers !== undefined &&
-            getClassName("kcContentWrapperClass"),
-        )}
-      >
+      <div id="kc-form" className={clsx(realm.password && social.providers !== undefined && getClassName("kcContentWrapperClass"))}>
         <div
           id="kc-form-wrapper"
           className={clsx(
-            realm.password &&
-              social.providers && [
-                getClassName("kcFormSocialAccountContentClass"),
-                getClassName("kcFormSocialAccountClass"),
-              ],
+            realm.password && social.providers && [getClassName("kcFormSocialAccountContentClass"), getClassName("kcFormSocialAccountClass")],
           )}
         >
           {realm.password && (
-            <form
-              id="kc-form-login"
-              onSubmit={onSubmit}
-              action={url.loginAction}
-              method="post"
-            >
+            <form id="kc-form-login" className={getClassName("kcFormClass")} onSubmit={onSubmit} action={url.loginAction} method="post" noValidate>
               <div className={getClassName("kcFormGroupClass")}>
                 {!usernameHidden &&
                   (() => {
-                    const label = !realm.loginWithEmailAllowed
-                      ? "username"
-                      : realm.registrationEmailAsUsername
-                        ? "email"
-                        : "usernameOrEmail";
+                    const label = !realm.loginWithEmailAllowed ? "username" : realm.registrationEmailAsUsername ? "email" : "usernameOrEmail";
 
-                    const autoCompleteHelper: typeof label =
-                      label === "usernameOrEmail" ? "username" : label;
+                    const autoCompleteHelper: typeof label = label === "usernameOrEmail" ? "username" : label;
 
                     return (
                       <>
-                        <label
-                          htmlFor={autoCompleteHelper}
-                          className={getClassName("kcLabelClass")}
-                        >
+                        <label htmlFor={autoCompleteHelper} className={getClassName("kcLabelClass")}>
                           {msg(label)}
                         </label>
                         <input
                           tabIndex={1}
                           id={autoCompleteHelper}
                           className={getClassName("kcInputClass")}
-                          //NOTE: This is used by Google Chrome auto fill so we use it to tell
-                          //the browser how to pre fill the form but before submit we put it back
-                          //to username because it is what keycloak expects.
                           name={autoCompleteHelper}
                           defaultValue={login.username ?? ""}
                           type="text"
@@ -161,42 +112,17 @@ export default function Login(
                   })()}
               </div>
               <div className={getClassName("kcFormGroupClass")}>
-                <label
-                  htmlFor="password"
-                  className={getClassName("kcLabelClass")}
-                >
+                <label htmlFor="password" className={getClassName("kcLabelClass")}>
                   {msg("password")}
                 </label>
-                <input
-                  tabIndex={2}
-                  id="password"
-                  className={getClassName("kcInputClass")}
-                  name="password"
-                  type="password"
-                  autoComplete="off"
-                />
+                <input tabIndex={2} id="password" className={getClassName("kcInputClass")} name="password" type="password" autoComplete="off" />
               </div>
-              <div
-                className={clsx(
-                  getClassName("kcFormGroupClass"),
-                  getClassName("kcFormSettingClass"),
-                )}
-              >
+              <div className={clsx(getClassName("kcFormGroupClass"), getClassName("kcFormSettingClass"))}>
                 <div id="kc-form-options">
                   {realm.rememberMe && !usernameHidden && (
                     <div className="checkbox">
                       <label>
-                        <input
-                          tabIndex={3}
-                          id="rememberMe"
-                          name="rememberMe"
-                          type="checkbox"
-                          {...(login.rememberMe === "on"
-                            ? {
-                                checked: true,
-                              }
-                            : {})}
-                        />
+                        <input tabIndex={3} id="rememberMe" name="rememberMe" type="checkbox" {...(login.rememberMe === "on" ? { checked: true } : {})} />
                         {msg("rememberMe")}
                       </label>
                     </div>
@@ -212,25 +138,17 @@ export default function Login(
                   )}
                 </div>
               </div>
-              <Turnstile
-                size="flexible"
-                sitekey="0x4AAAAAACAYJLZXr_BFRj0f"
-                onSuccess={handleTurnstileSuccess}
-                onError={handleTurnstileError}
-              />
 
-              {errorMessage && errorMessage.trim() != "" && (
+              <Turnstile size="flexible" sitekey="0x4AAAAAACAYJLZXr_BFRj0f" onSuccess={handleTurnstileSuccess} onError={handleTurnstileError} />
+
+              {errorMessage && errorMessage.trim() !== "" && (
                 <h2 className="error">
-                  Error occurred in login verification with error code "
-                  {errorMessage}". Please contact info@bitedata.io!
+                  Error occurred in login verification with error code "{errorMessage}". Please contact info@bitedata.io!
                 </h2>
               )}
 
-              {loadingMessage && loadingMessage == "Loading" && (
-                <div
-                  id="kc-form-buttons"
-                  className={getClassName("kcFormGroupClass")}
-                >
+              {loadingMessage === "Loading" && (
+                <div id="kc-form-buttons" className={getClassName("kcFormGroupClass")}>
                   <div className="loading">
                     Verifying that you are human.
                     <div className="spinner" />
@@ -238,11 +156,8 @@ export default function Login(
                 </div>
               )}
 
-              {loadingMessage != "Loading" && (
-                <div
-                  id="kc-form-buttons"
-                  className={getClassName("kcFormGroupClass")}
-                >
+              {loadingMessage !== "Loading" && (
+                <div id="kc-form-buttons" className={getClassName("kcFormGroupClass")}>
                   <input
                     type="hidden"
                     id="id-hidden-input"
@@ -273,30 +188,16 @@ export default function Login(
           )}
         </div>
         {realm.password && social.providers !== undefined && (
-          <div
-            id="kc-social-providers"
-            className={clsx(
-              getClassName("kcFormSocialAccountContentClass"),
-              getClassName("kcFormSocialAccountClass"),
-            )}
-          >
+          <div id="kc-social-providers" className={clsx(getClassName("kcFormSocialAccountContentClass"), getClassName("kcFormSocialAccountClass"))}>
             <ul
               className={clsx(
                 getClassName("kcFormSocialAccountListClass"),
-                social.providers.length > 4 &&
-                  getClassName("kcFormSocialAccountDoubleListClass"),
+                social.providers.length > 4 && getClassName("kcFormSocialAccountDoubleListClass"),
               )}
             >
               {social.providers.map((p) => (
-                <li
-                  key={p.providerId}
-                  className={getClassName("kcFormSocialAccountListLinkClass")}
-                >
-                  <a
-                    href={p.loginUrl}
-                    id={`zocial-${p.alias}`}
-                    className={clsx("zocial", p.providerId)}
-                  >
+                <li key={p.providerId} className={getClassName("kcFormSocialAccountListLinkClass")}>
+                  <a href={p.loginUrl} id={`zocial-${p.alias}`} className={clsx("zocial", p.providerId)}>
                     <span>{p.displayName}</span>
                   </a>
                 </li>
