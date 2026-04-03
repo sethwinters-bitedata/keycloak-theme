@@ -11,6 +11,14 @@ import { assert } from "tsafe/assert";
 import { is } from "tsafe/is";
 import { typeGuard } from "tsafe/typeGuard";
 
+
+const toArrayBuffer = (bytes: ArrayLike<number>): ArrayBuffer => {
+    const arrayBuffer = new ArrayBuffer(bytes.length);
+    new Uint8Array(arrayBuffer).set(bytes);
+
+    return arrayBuffer;
+};
+
 export default function WebauthnAuthenticate(props: PageProps<Extract<KcContext, { pageId: "webauthn-authenticate.ftl" }>, I18n>) {
     const { kcContext, i18n, doUseDefaultCss, Template, classes } = props;
 
@@ -45,7 +53,7 @@ export default function WebauthnAuthenticate(props: PageProps<Extract<KcContext,
         const allowCredentials = authenticators.authenticators.map(
             authenticator =>
                 ({
-                    id: base64url.parse(authenticator.credentialId, { loose: true }),
+                    id: toArrayBuffer(base64url.parse(authenticator.credentialId, { loose: true })),
                     type: "public-key"
                 } as PublicKeyCredentialDescriptor)
         );
@@ -58,7 +66,7 @@ export default function WebauthnAuthenticate(props: PageProps<Extract<KcContext,
 
         const publicKey: PublicKeyCredentialRequestOptions = {
             rpId,
-            challenge: base64url.parse(challenge, { loose: true })
+            challenge: toArrayBuffer(base64url.parse(challenge, { loose: true }))
         };
 
         if (createTimeout !== 0) {
