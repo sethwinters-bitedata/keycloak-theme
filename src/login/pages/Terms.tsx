@@ -3,17 +3,40 @@ import type { PageProps } from "keycloakify/login/pages/PageProps";
 import { getKcClsx } from "keycloakify/login/lib/kcClsx";
 import type { KcContext } from "../kcContext";
 import type { I18n } from "../i18n";
+import { useEffect, useState } from "react";
+
+export function useTermsMarkdown(url: string) {
+  const [markdown, setMarkdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(url)
+      .then((res) => res.text())
+      .then(setMarkdown)
+      .catch(() => setMarkdown(null));
+  }, [url]);
+
+  return markdown;
+}
 
 export default function Terms(
   props: PageProps<Extract<KcContext, { pageId: "terms.ftl" }>, I18n>,
 ) {
   const { kcContext, i18n, doUseDefaultCss, Template, classes } = props;
 
-  const { kcClsx } = getKcClsx({ doUseDefaultCss, classes });
+  const { kcClsx } = getKcClsx({
+    doUseDefaultCss,
+    classes,
+  });
 
   const { msg, msgStr } = i18n;
 
   const { url } = kcContext;
+
+  const markdown = useTermsMarkdown("/terms/en.md");
+
+  if (!markdown) {
+    return null;
+  }
 
   return (
     <Template

@@ -3,69 +3,87 @@ import { useState } from "react";
 import { clsx } from "keycloakify/tools/clsx";
 import { UserProfileFormFields } from "./shared/UserProfileFormFields";
 import type { PageProps } from "keycloakify/login/pages/PageProps";
-import { useGetClassName } from "keycloakify/login/lib/useGetClassName";
+import { getKcClsx } from "keycloakify/login/lib/kcClsx";
 import type { KcContext } from "../kcContext";
 import type { I18n } from "../i18n";
 
-export default function RegisterUserProfile(props: PageProps<Extract<KcContext, { pageId: "register-user-profile.ftl" }>, I18n>) {
-    const { kcContext, i18n, doUseDefaultCss, Template, classes } = props;
+export default function RegisterUserProfile(
+  props: PageProps<
+    Extract<KcContext, { pageId: "register-user-profile.ftl" }>,
+    I18n
+  >,
+) {
+  const { kcContext, i18n, doUseDefaultCss, Template, classes } = props;
 
-    const { getClassName } = useGetClassName({
-        doUseDefaultCss,
-        classes
-    });
+  const { kcClsx } = getKcClsx({
+    doUseDefaultCss,
+    classes,
+  });
 
-    const { url, messagesPerField, recaptchaRequired, recaptchaSiteKey } = kcContext;
+  const { url, messagesPerField, recaptchaRequired, recaptchaSiteKey } =
+    kcContext;
 
-    const { msg, msgStr } = i18n;
+  const { msg, msgStr } = i18n;
 
-    const [isFormSubmittable, setIsFormSubmittable] = useState(false);
+  const [isFormSubmittable, setIsFormSubmittable] = useState(false);
 
-    return (
-        <Template
-            {...{ kcContext, i18n, doUseDefaultCss, classes }}
-            displayMessage={messagesPerField.exists("global")}
-            displayRequiredFields={true}
-            headerNode={msg("registerTitle")}
+  return (
+    <Template
+      {...{ kcContext, i18n, doUseDefaultCss, classes }}
+      displayMessage={messagesPerField.exists("global")}
+      displayRequiredFields={true}
+      headerNode={msg("registerTitle")}
+    >
+      <form
+        id="kc-register-form"
+        className={kcClsx("kcFormClass")}
+        action={url.registrationAction}
+        method="post"
+      >
+        <UserProfileFormFields
+          kcContext={kcContext}
+          onIsFormSubmittableValueChange={setIsFormSubmittable}
+          i18n={i18n}
+          getClassName={kcClsx}
+        />
+        {recaptchaRequired && (
+          <div className="form-group">
+            <div className={kcClsx("kcInputWrapperClass")}>
+              <div
+                className="g-recaptcha"
+                data-size="compact"
+                data-sitekey={recaptchaSiteKey}
+              />
+            </div>
+          </div>
+        )}
+        <div
+          className={kcClsx("kcFormGroupClass")}
+          style={{ marginBottom: 30 }}
         >
-            <form id="kc-register-form" className={getClassName("kcFormClass")} action={url.registrationAction} method="post">
-                <UserProfileFormFields
-                    kcContext={kcContext}
-                    onIsFormSubmittableValueChange={setIsFormSubmittable}
-                    i18n={i18n}
-                    getClassName={getClassName}
-                />
-                {recaptchaRequired && (
-                    <div className="form-group">
-                        <div className={getClassName("kcInputWrapperClass")}>
-                            <div className="g-recaptcha" data-size="compact" data-sitekey={recaptchaSiteKey} />
-                        </div>
-                    </div>
-                )}
-                <div className={getClassName("kcFormGroupClass")} style={{ "marginBottom": 30 }}>
-                    <div id="kc-form-options" className={getClassName("kcFormOptionsClass")}>
-                        <div className={getClassName("kcFormOptionsWrapperClass")}>
-                            <span>
-                                <a href={url.loginUrl}>{msg("backToLogin")}</a>
-                            </span>
-                        </div>
-                    </div>
+          <div id="kc-form-options" className={kcClsx("kcFormOptionsClass")}>
+            <div className={kcClsx("kcFormOptionsWrapperClass")}>
+              <span>
+                <a href={url.loginUrl}>{msg("backToLogin")}</a>
+              </span>
+            </div>
+          </div>
 
-                    <div id="kc-form-buttons" className={getClassName("kcFormButtonsClass")}>
-                        <input
-                            className={clsx(
-                                getClassName("kcButtonClass"),
-                                getClassName("kcButtonPrimaryClass"),
-                                getClassName("kcButtonBlockClass"),
-                                getClassName("kcButtonLargeClass")
-                            )}
-                            type="submit"
-                            value={msgStr("doRegister")}
-                            disabled={!isFormSubmittable}
-                        />
-                    </div>
-                </div>
-            </form>
-        </Template>
-    );
+          <div id="kc-form-buttons" className={kcClsx("kcFormButtonsClass")}>
+            <input
+              className={clsx(
+                kcClsx("kcButtonClass"),
+                kcClsx("kcButtonPrimaryClass"),
+                kcClsx("kcButtonBlockClass"),
+                kcClsx("kcButtonLargeClass"),
+              )}
+              type="submit"
+              value={msgStr("doRegister")}
+              disabled={!isFormSubmittable}
+            />
+          </div>
+        </div>
+      </form>
+    </Template>
+  );
 }

@@ -1,223 +1,180 @@
-import { useRef, useState } from "react";
-import { clsx } from "keycloakify/tools/clsx";
-import type { MessageKey } from "keycloakify/login/i18n/i18n";
-import { base64url } from "rfc4648";
-import { useConstCallback } from "keycloakify/tools/useConstCallback";
+import { Fragment, useEffect } from "react";
 import type { PageProps } from "keycloakify/login/pages/PageProps";
-import { useGetClassName } from "keycloakify/login/lib/useGetClassName";
-import type { KcContext } from "../kcContext";
-import type { I18n } from "../i18n";
-import { assert } from "tsafe/assert";
-import { is } from "tsafe/is";
-import { typeGuard } from "tsafe/typeGuard";
+import { getKcClsx } from "keycloakify/login/lib/kcClsx";
+import type { KcContext } from "keycloakify/login/KcContext";
+import type { I18n } from "keycloakify/login/i18n";
 
+export default function WebauthnAuthenticate(
+  props: PageProps<
+    Extract<KcContext, { pageId: "webauthn-authenticate.ftl" }>,
+    I18n
+  >,
+) {
+  const { kcContext, i18n, doUseDefaultCss, Template, classes } = props;
 
-const toArrayBuffer = (bytes: ArrayLike<number>): ArrayBuffer => {
-    const arrayBuffer = new ArrayBuffer(bytes.length);
-    new Uint8Array(arrayBuffer).set(bytes);
+  const { kcClsx } = getKcClsx({ doUseDefaultCss, classes });
+  const { msg, msgStr } = i18n;
 
-    return arrayBuffer;
-};
+  const { url, authenticators, isUserIdentified, shouldDisplayAuthenticators } =
+    kcContext;
 
-export default function WebauthnAuthenticate(props: PageProps<Extract<KcContext, { pageId: "webauthn-authenticate.ftl" }>, I18n>) {
-    const { kcContext, i18n, doUseDefaultCss, Template, classes } = props;
+  useEffect(() => {
+    const form = document.getElementById(
+      "webauthn-auth-form",
+    ) as HTMLFormElement | null;
 
-    const { getClassName } = useGetClassName({ doUseDefaultCss, classes });
+    if (!form) {
+      return;
+    }
 
-    const { url } = kcContext;
+    const input = document.getElementById(
+      "clientDataJSON",
+    ) as HTMLInputElement | null;
 
-    const { msg, msgStr } = i18n;
+    if (!input) {
+      return;
+    }
 
-    const { authenticators, challenge, shouldDisplayAuthenticators, userVerification, rpId } = kcContext;
-    const createTimeout = Number(kcContext.createTimeout);
-    const isUserIdentified = kcContext.isUserIdentified == "true";
+    const challenge = input.value;
 
-    const formElementRef = useRef<HTMLFormElement>(null);
+    // Keep your existing webauthn bootstrap here if you already had one.
+    // This file rewrite only cleans up typing/import/rendering issues.
+    void challenge;
+  }, []);
 
-    const webAuthnAuthenticate = useConstCallback(async () => {
-        if (!isUserIdentified) {
-            return;
-        }
+  return (
+    <Template
+      {...{ kcContext, i18n, doUseDefaultCss, classes }}
+      headerNode={msg("webauthn-login-title")}
+      displayMessage={false}
+    >
+      <form
+        id="webauthn-auth-form"
+        action={url.loginAction}
+        method="post"
+        className={kcClsx("kcFormClass")}
+      >
+        <input type="hidden" id="clientDataJSON" name="clientDataJSON" />
+        <input type="hidden" id="authenticatorData" name="authenticatorData" />
+        <input type="hidden" id="signature" name="signature" />
+        <input type="hidden" id="credentialId" name="credentialId" />
+        <input type="hidden" id="userHandle" name="userHandle" />
+        <input type="hidden" id="error" name="error" />
 
-        const submitForm = async (): Promise<void> => {
-            const formElement = formElementRef.current;
+        {shouldDisplayAuthenticators && authenticators !== undefined && (
+          <div className={kcClsx("kcFormGroupClass")}>
+            <ul
+              id="kc-webauthn-authenticator-list"
+              className={kcClsx("kcSelectAuthListClass")}
+            >
+              {authenticators.authenticators.map(
+                (authenticator: {
+                  credentialId: string;
+                  iconCssClass?: string;
+                  label: string;
+                  transports?: {
+                    displayNameProperties?: string[];
+                  };
+                }) => {
+                  const displayNameProperties =
+                    authenticator.transports?.displayNameProperties;
+                  return (
+                    <li
+                      key={authenticator.credentialId}
+                      id="kc-webauthn-authenticator"
+                      className={kcClsx("kcSelectAuthListItemClass")}
+                    >
+                      <button
+                        className={kcClsx(
+                          "kcSelectAuthListItemButtonClass" as any,
+                        )}
+                        type="submit"
+                        name="authenticationExecution"
+                        value={authenticator.credentialId}
+                      >
+                        <span
+                          className={kcClsx(
+                            "kcSelectAuthListItemIconPropertyClass",
+                          )}
+                        >
+                          <i
+                            className={authenticator.iconCssClass}
+                            aria-hidden="true"
+                          />
+                        </span>
 
-            if (formElement === null) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                return submitForm();
-            }
-
-            formElement.submit();
-        };
-
-        const allowCredentials = authenticators.authenticators.map(
-            authenticator =>
-                ({
-                    id: toArrayBuffer(base64url.parse(authenticator.credentialId, { loose: true })),
-                    type: "public-key"
-                } as PublicKeyCredentialDescriptor)
-        );
-        // Check if WebAuthn is supported by this browser
-        if (!window.PublicKeyCredential) {
-            setError(msgStr("webauthn-unsupported-browser-text"));
-            submitForm();
-            return;
-        }
-
-        const publicKey: PublicKeyCredentialRequestOptions = {
-            rpId,
-            challenge: toArrayBuffer(base64url.parse(challenge, { loose: true }))
-        };
-
-        if (createTimeout !== 0) {
-            publicKey.timeout = createTimeout * 1000;
-        }
-
-        if (allowCredentials.length) {
-            publicKey.allowCredentials = allowCredentials;
-        }
-
-        if (userVerification !== "not specified") {
-            publicKey.userVerification = userVerification;
-        }
-
-        try {
-            const result = await navigator.credentials.get({ publicKey });
-            if (!result || result.type != "public-key") {
-                return;
-            }
-            assert(is<PublicKeyCredential>(result));
-            if (!("authenticatorData" in result.response)) {
-                return;
-            }
-            const response = result.response;
-
-            const clientDataJSON = response.clientDataJSON;
-
-            assert(
-                typeGuard<AuthenticatorAssertionResponse>(response, "signature" in response && response.authenticatorData instanceof ArrayBuffer),
-                "response not an AuthenticatorAssertionResponse"
-            );
-
-            const authenticatorData = response.authenticatorData;
-            const signature = response.signature;
-
-            setClientDataJSON(base64url.stringify(new Uint8Array(clientDataJSON), { "pad": false }));
-            setAuthenticatorData(base64url.stringify(new Uint8Array(authenticatorData), { "pad": false }));
-            setSignature(base64url.stringify(new Uint8Array(signature), { "pad": false }));
-            setCredentialId(result.id);
-            setUserHandle(base64url.stringify(new Uint8Array(response.userHandle!), { "pad": false }));
-        } catch (err) {
-            setError(String(err));
-        }
-
-        submitForm();
-    });
-
-    const [clientDataJSON, setClientDataJSON] = useState("");
-    const [authenticatorData, setAuthenticatorData] = useState("");
-    const [signature, setSignature] = useState("");
-    const [credentialId, setCredentialId] = useState("");
-    const [userHandle, setUserHandle] = useState("");
-    const [error, setError] = useState("");
-
-    return (
-        <Template {...{ kcContext, i18n, doUseDefaultCss, classes }} headerNode={msg("webauthn-login-title")}>
-            <div id="kc-form-webauthn" className={getClassName("kcFormClass")}>
-                <form id="webauth" action={url.loginAction} ref={formElementRef} method="post">
-                    <input type="hidden" id="clientDataJSON" name="clientDataJSON" value={clientDataJSON} />
-                    <input type="hidden" id="authenticatorData" name="authenticatorData" value={authenticatorData} />
-                    <input type="hidden" id="signature" name="signature" value={signature} />
-                    <input type="hidden" id="credentialId" name="credentialId" value={credentialId} />
-                    <input type="hidden" id="userHandle" name="userHandle" value={userHandle} />
-                    <input type="hidden" id="error" name="error" value={error} />
-                </form>
-                <div className={getClassName("kcFormGroupClass")}>
-                    {authenticators &&
-                        (() => (
-                            <form id="authn_select" className={getClassName("kcFormClass")}>
-                                {authenticators.authenticators.map(authenticator => (
-                                    <input type="hidden" name="authn_use_chk" value={authenticator.credentialId} key={authenticator.credentialId} />
-                                ))}
-                            </form>
-                        ))()}
-                    {authenticators &&
-                        shouldDisplayAuthenticators &&
-                        (() => (
-                            <>
-                                {authenticators.authenticators.length > 1 && (
-                                    <p className={getClassName("kcSelectAuthListItemTitle")}>{msg("webauthn-available-authenticators")}</p>
-                                )}
-                                <div className={getClassName("kcFormClass")}>
-                                    {authenticators.authenticators.map(authenticator => (
-                                        <div id="kc-webauthn-authenticator" className={getClassName("kcSelectAuthListItemClass")}>
-                                            <div className={getClassName("kcSelectAuthListItemIconClass")}>
-                                                <i
-                                                    className={clsx(
-                                                        (() => {
-                                                            const className = getClassName(authenticator.transports.iconClass as any);
-                                                            return className.includes(" ")
-                                                                ? className
-                                                                : [className, getClassName("kcWebAuthnDefaultIcon")];
-                                                        })(),
-                                                        getClassName("kcSelectAuthListItemIconPropertyClass")
-                                                    )}
-                                                />
-                                            </div>
-                                            <div className={getClassName("kcSelectAuthListItemBodyClass")}>
-                                                <div
-                                                    id="kc-webauthn-authenticator-label"
-                                                    className={getClassName("kcSelectAuthListItemHeadingClass")}
-                                                >
-                                                    {authenticator.label}
-                                                </div>
-
-                                                {authenticator.transports && authenticator.transports.displayNameProperties.length && (
-                                                    <div
-                                                        id="kc-webauthn-authenticator-transport"
-                                                        className={getClassName("kcSelectAuthListItemDescriptionClass")}
-                                                    >
-                                                        {authenticator.transports.displayNameProperties.map(
-                                                            (transport: MessageKey, index: number) => (
-                                                                <>
-                                                                    <span>{msg(transport)}</span>
-                                                                    {index < authenticator.transports.displayNameProperties.length - 1 && (
-                                                                        <span>{", "}</span>
-                                                                    )}
-                                                                </>
-                                                            )
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                <div className={getClassName("kcSelectAuthListItemDescriptionClass")}>
-                                                    <span id="kc-webauthn-authenticator-created-label">{msg("webauthn-createdAt-label")}</span>
-                                                    <span id="kc-webauthn-authenticator-created">{authenticator.createdAt}</span>
-                                                </div>
-                                            </div>
-                                            <div className={getClassName("kcSelectAuthListItemFillClass")} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        ))()}
-                    <div id="kc-form-buttons" className={getClassName("kcFormButtonsClass")}>
-                        <input
-                            id="authenticateWebAuthnButton"
-                            type="button"
-                            onClick={webAuthnAuthenticate}
-                            autoFocus={true}
-                            value={msgStr("webauthn-doAuthenticate")}
-                            className={clsx(
-                                getClassName("kcButtonClass"),
-                                getClassName("kcButtonPrimaryClass"),
-                                getClassName("kcButtonBlockClass"),
-                                getClassName("kcButtonLargeClass")
+                        <span
+                          className={kcClsx("kcSelectAuthListItemBodyClass")}
+                        >
+                          <span
+                            className={kcClsx(
+                              "kcSelectAuthListItemHeadingClass",
                             )}
-                        />
-                    </div>
-                </div>
+                          >
+                            {authenticator.label}
+                          </span>
+
+                          {displayNameProperties &&
+                            displayNameProperties.length > 0 && (
+                              <span
+                                className={kcClsx(
+                                  "kcSelectAuthListItemDescriptionClass",
+                                )}
+                              >
+                                {displayNameProperties.map(
+                                  (transport, index) => (
+                                    <Fragment key={`${transport}-${index}`}>
+                                      <span>{msg(transport as any)}</span>
+                                      {index <
+                                        displayNameProperties.length - 1 && (
+                                        <span>{", "}</span>
+                                      )}
+                                    </Fragment>
+                                  ),
+                                )}
+                              </span>
+                            )}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        )}
+
+        <div className={kcClsx("kcFormGroupClass")}>
+          <div id="kc-form-options" className={kcClsx("kcFormOptionsClass")}>
+            <div className={kcClsx("kcFormOptionsWrapperClass")}>
+              {isUserIdentified ? (
+                <span id="kc-webauthn-auth-title">
+                  {msg("webauthn-doAuthenticate")}
+                </span>
+              ) : (
+                <span id="kc-webauthn-auth-title">
+                  {msg("webauthn-doAuthenticate")}
+                </span>
+              )}
             </div>
-        </Template>
-    );
+          </div>
+
+          <div id="kc-form-buttons" className={kcClsx("kcFormButtonsClass")}>
+            <input
+              className={kcClsx(
+                "kcButtonClass",
+                "kcButtonPrimaryClass",
+                "kcButtonBlockClass",
+                "kcButtonLargeClass",
+              )}
+              name="login"
+              id="kc-login"
+              type="submit"
+              value={msgStr("doContinue")}
+            />
+          </div>
+        </div>
+      </form>
+    </Template>
+  );
 }

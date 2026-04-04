@@ -1,40 +1,54 @@
 import "./KcApp.css";
 import { lazy, Suspense } from "react";
-import type { PageProps } from "keycloakify/account";
+import type { PageProps } from "keycloakify/account/pages/PageProps";
+import DefaultPage from "keycloakify/account/DefaultPage";
 import type { KcContext } from "./kcContext";
 import { useI18n } from "./i18n";
 import Template from "./Template";
 
 const Password = lazy(() => import("./pages/Password"));
-const MyExtraPage1 = lazy(() => import("./pages/MyExtraPage1"));
-const MyExtraPage2 = lazy(() => import("./pages/MyExtraPage2"));
-const Fallback = lazy(()=> import("keycloakify/account"));
 
 const classes = {
-    "kcBodyClass": "my-root-account-class"
-} satisfies PageProps["classes"];
+  kcBodyClass: "my-root-account-class",
+} satisfies PageProps<
+  KcContext,
+  ReturnType<typeof useI18n> extends null
+    ? never
+    : NonNullable<ReturnType<typeof useI18n>>
+>["classes"];
 
-export default function KcApp(props: { kcContext: KcContext; }) {
+export default function KcApp(props: { kcContext: KcContext }) {
+  const { kcContext } = props;
 
-    const { kcContext } = props;
+  const i18n = useI18n({ kcContext });
 
-    const i18n = useI18n({ kcContext });
+  if (i18n === null) {
+    return null;
+  }
 
-    if (i18n === null) {
-        return null;
-    }
-
-    return (
-        <Suspense>
-            {(() => {
-                switch (kcContext.pageId) {
-                    case "password.ftl": return <Password {...{ kcContext, i18n, Template, classes }} doUseDefaultCss={true} />;
-                    case "my-extra-page-1.ftl": return <MyExtraPage1 {...{ kcContext, i18n, Template, classes }} doUseDefaultCss={true} />;
-                    case "my-extra-page-2.ftl": return <MyExtraPage2 {...{ kcContext, i18n, Template, classes }} doUseDefaultCss={true} />;
-                    default: return <Fallback {...{ kcContext, i18n, classes }} Template={Template} doUseDefaultCss={true} />;
-                }
-            })()}
-        </Suspense>
-    );
-
+  return (
+    <Suspense>
+      {(() => {
+        switch (kcContext.pageId) {
+          case "password.ftl":
+            return (
+              <Password
+                {...{ kcContext, i18n, Template, classes }}
+                doUseDefaultCss={true}
+              />
+            );
+          default:
+            return (
+              <DefaultPage
+                kcContext={kcContext}
+                i18n={i18n}
+                Template={Template}
+                classes={classes}
+                doUseDefaultCss={true}
+              />
+            );
+        }
+      })()}
+    </Suspense>
+  );
 }
