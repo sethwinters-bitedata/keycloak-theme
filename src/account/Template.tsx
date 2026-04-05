@@ -1,14 +1,25 @@
 import { clsx } from "keycloakify/tools/clsx";
-import type { TemplateProps } from "keycloakify/login/TemplateProps"; // ✅ FIXED
-import type { KcContext } from "./kcContext"; // ✅ FIXED
+import type { TemplateProps } from "keycloakify/login/TemplateProps";
+import type { KcContext } from "./kcContext";
 import type { I18n } from "./i18n";
 
 export default function Template(props: TemplateProps<KcContext, I18n>) {
-  const { kcContext, i18n, children } = props;
+  const {
+    kcContext,
+    i18n,
+    children,
+    headerNode,
+    displayMessage = true,
+    displayInfo = false,
+    infoNode,
+  } = props;
 
   const { msg } = i18n;
-
-  const { locale, url, realm, message, referrer } = kcContext;
+  const { url, message } = kcContext;
+  const referrer =
+    "referrer" in kcContext
+      ? (kcContext.referrer as { url: string; name: string })
+      : undefined;
 
   return (
     <>
@@ -23,43 +34,16 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
           <div className="navbar-collapse navbar-collapse-1">
             <div className="container">
               <ul className="nav navbar-nav navbar-utility">
-                {/* 🌍 Language selector (NEW API) */}
-                {realm.internationalizationEnabled &&
-                  locale?.supported?.length &&
-                  locale?.supported?.length > 1 && (
-                    <li>
-                      <div className="kc-dropdown" id="kc-locale-dropdown">
-                        <a href="#" onClick={(e) => e.preventDefault()}>
-                          {i18n.currentLanguage.label}
-                        </a>
-
-                        <ul>
-                          {i18n.supportedLanguages.map((lang) => (
-                            <li key={lang.languageTag}>
-                              <a
-                                href="#"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  i18n.setCurrentLanguageTag(lang.languageTag);
-                                }}
-                              >
-                                {lang.label}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </li>
-                  )}
-
                 {referrer?.url && (
                   <li>
-                    <a href={referrer.url}>{msg("backTo", referrer.name)}</a>
+                    <a href={referrer?.url} id="referrer">
+                      {msg("backTo", referrer?.name)}
+                    </a>
                   </li>
                 )}
 
                 <li>
-                  <a href={url.getLogoutUrl()}>{msg("doSignOut")}</a>
+                  <a href={url.loginAction}>{msg("doLogIn")}</a>
                 </li>
               </ul>
             </div>
@@ -68,13 +52,19 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
       </header>
 
       <div className="container">
-        {message && (
-          <div className={clsx("alert", `alert-${message.type}`)}>
-            <span>{message.summary}</span>
-          </div>
-        )}
+        <div className="col-sm-12 content-area">
+          {headerNode && <h1>{headerNode}</h1>}
 
-        {children}
+          {displayMessage && message !== undefined && (
+            <div className={clsx("alert", `alert-${message.type}`)}>
+              <span className="kc-feedback-text">{message.summary}</span>
+            </div>
+          )}
+
+          {children}
+
+          {displayInfo && infoNode && <div id="kc-info">{infoNode}</div>}
+        </div>
       </div>
     </>
   );

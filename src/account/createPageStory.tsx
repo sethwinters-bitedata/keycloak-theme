@@ -1,24 +1,34 @@
-import type { KcContext } from "../login/kcContext";
 import type { DeepPartial } from "keycloakify/tools/DeepPartial";
 import { createGetKcContextMock } from "keycloakify/login/KcContext/getKcContextMock";
 import KcApp from "./KcApp";
 
-const getKcContextMock = createGetKcContextMock({
+const { getKcContextMock } = createGetKcContextMock({
   kcContextExtension: {},
-  kcContextExtensionPerPage: {},
+  kcContextExtensionPerPage: {
+    "my-extra-page-1.ftl": {},
+    "my-extra-page-2.ftl": {
+      someCustomValue: "",
+    },
+    "register.ftl": {
+      authorizedMailDomains: [],
+    },
+    "password.ftl": {},
+  },
 });
 
-export function createPageStory<PageId extends KcContext["pageId"]>(params: {
-  pageId: PageId;
-}) {
+type ExtendedKcContext = ReturnType<typeof getKcContextMock>;
+
+export function createPageStory<
+  PageId extends ExtendedKcContext["pageId"],
+>(params: { pageId: PageId }) {
   const { pageId } = params;
 
   function PageStory(props: {
-    kcContext?: DeepPartial<Extract<KcContext, { pageId: PageId }>>;
+    kcContext?: DeepPartial<Extract<ExtendedKcContext, { pageId: PageId }>>;
   }) {
     const kcContext = getKcContextMock({
       pageId,
-      overrides: props.kcContext ?? {},
+      overrides: props.kcContext,
     });
 
     return (
