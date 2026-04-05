@@ -1,4 +1,4 @@
-import { i18nBuilder } from "keycloakify/login";
+import { i18nBuilder } from "keycloakify/account";
 
 const { useI18n, ofTypeI18n } = i18nBuilder
   .withCustomTranslations({

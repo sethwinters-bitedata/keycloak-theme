@@ -1,7 +1,7 @@
 // ejected using 'npx eject-keycloak-page'
 import { useState } from "react";
 import { clsx } from "keycloakify/tools/clsx";
-import { UserProfileFormFields } from "./shared/UserProfileFormFields";
+import UserProfileFormFields from "./shared/UserProfileFormFields";
 import type { PageProps } from "keycloakify/login/pages/PageProps";
 import { getKcClsx } from "keycloakify/login/lib/kcClsx";
 import type { KcContext } from "../kcContext";
@@ -44,7 +44,8 @@ export default function RegisterUserProfile(
           kcContext={kcContext}
           onIsFormSubmittableValueChange={setIsFormSubmittable}
           i18n={i18n}
-          getClassName={kcClsx}
+          kcClsx={kcClsx}
+          doMakeUserConfirmPassword={true}
         />
         {recaptchaRequired && (
           <div className="form-group">

@@ -1,9 +1,17 @@
 import { clsx } from "keycloakify/tools/clsx";
-import type { TemplateProps } from "keycloakify/login/TemplateProps";
+import type { ReactElement } from "react";
+import type { TemplateProps } from "keycloakify/account/TemplateProps";
 import type { KcContext } from "./kcContext";
 import type { I18n } from "./i18n";
 
-export default function Template(props: TemplateProps<KcContext, I18n>) {
+export default function Template(
+  props: TemplateProps<KcContext, I18n> & {
+    headerNode?: ReactElement | string;
+    infoNode?: ReactElement | string;
+    displayInfo?: boolean;
+    displayMessage?: boolean;
+  },
+): ReactElement | null {
   const {
     kcContext,
     i18n,
@@ -36,8 +44,8 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
               <ul className="nav navbar-nav navbar-utility">
                 {referrer?.url && (
                   <li>
-                    <a href={referrer?.url} id="referrer">
-                      {msg("backTo", referrer?.name)}
+                    <a href={referrer.url} id="referrer">
+                      {msg("backTo", referrer.name)}
                     </a>
                   </li>
                 )}

@@ -1,30 +1,24 @@
 import { Fragment, useEffect } from "react";
 import type { ClassKey } from "keycloakify/login/TemplateProps";
 import { clsx } from "keycloakify/tools/clsx";
-import type { KcContext } from "keycloakify/login/KcContext";
-import type { I18n } from "keycloakify/login/i18n";
+import type { UserProfileFormFieldsProps } from "keycloakify/login/UserProfileFormFieldsProps";
+import { getKcClsx } from "keycloakify/login/lib/kcClsx";
 import type { Attribute } from "keycloakify/login/KcContext";
 
-type RegisterKcContext = Extract<KcContext, { pageId: "register.ftl" }>;
-
-export type UserProfileFormFieldsProps = {
-  kcContext: RegisterKcContext;
-  i18n: I18n;
-  getClassName: (classKey: ClassKey) => string;
-  onIsFormSubmittableValueChange: (isFormSubmittable: boolean) => void;
-  BeforeField?: (props: { attribute: Attribute }) => JSX.Element | null;
-  AfterField?: (props: { attribute: Attribute }) => JSX.Element | null;
-};
-
-export function UserProfileFormFields(props: UserProfileFormFieldsProps) {
+export default function UserProfileFormFields(
+  props: UserProfileFormFieldsProps,
+) {
   const {
     kcContext,
     i18n,
-    getClassName,
     onIsFormSubmittableValueChange,
     BeforeField,
     AfterField,
   } = props;
+
+  const { kcClsx } = getKcClsx({ doUseDefaultCss: true, classes: {} });
+
+  const getClassName = (classKey: ClassKey) => kcClsx(classKey);
 
   const { advancedMsg, msg } = i18n;
   const { profile, messagesPerField } = kcContext;
@@ -37,8 +31,8 @@ export function UserProfileFormFields(props: UserProfileFormFieldsProps) {
 
   return (
     <>
-      {Object.values(profile.attributesByName).map(
-        (attribute: Attribute, i: number) => {
+      {(Object.values(profile.attributesByName) as Attribute[]).map(
+        (attribute, i) => {
           const group = attribute.group;
           const groupName = group?.name ?? "";
           const groupDisplayHeader = group?.displayHeader ?? "";
@@ -77,7 +71,18 @@ export function UserProfileFormFields(props: UserProfileFormFieldsProps) {
                   </div>
                 )}
 
-              {BeforeField && <BeforeField attribute={attribute} />}
+              {BeforeField && (
+                <BeforeField
+                  attribute={attribute}
+                  valueOrValues={attribute.value ?? ""}
+                  displayableErrors={
+                    hasError ? [messagesPerField.get(attribute.name)] : []
+                  }
+                  dispatchFormAction={() => {}}
+                  kcClsx={kcClsx}
+                  i18n={i18n}
+                />
+              )}
 
               <div className={formGroupClassName}>
                 <div className={getClassName("kcLabelWrapperClass")}>
@@ -141,7 +146,18 @@ export function UserProfileFormFields(props: UserProfileFormFieldsProps) {
                 </div>
               </div>
 
-              {AfterField && <AfterField attribute={attribute} />}
+              {AfterField && (
+                <AfterField
+                  attribute={attribute}
+                  valueOrValues={attribute.value ?? ""}
+                  displayableErrors={
+                    hasError ? [messagesPerField.get(attribute.name)] : []
+                  }
+                  dispatchFormAction={() => {}}
+                  kcClsx={kcClsx}
+                  i18n={i18n}
+                />
+              )}
             </Fragment>
           );
         },

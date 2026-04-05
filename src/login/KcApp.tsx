@@ -17,10 +17,14 @@ const classes = {
   kcHeaderWrapperClass: "my-color my-font",
 } satisfies PageProps<KcContext, I18n>["classes"];
 
+const UserProfileFormFields = lazy(
+  () => import("./pages/shared/UserProfileFormFields"),
+);
+
 export default function KcApp(props: { kcContext: KcContext }) {
   const { kcContext } = props;
 
-  const i18n = useI18n({ kcContext });
+  const { i18n } = useI18n({ kcContext });
 
   if (i18n === null) {
     return null;
@@ -33,7 +37,10 @@ export default function KcApp(props: { kcContext: KcContext }) {
           case "login.ftl":
             return (
               <Login
-                {...{ kcContext, i18n, Template, classes }}
+                kcContext={kcContext}
+                i18n={i18n}
+                Template={Template}
+                classes={classes}
                 doUseDefaultCss={true}
               />
             );
@@ -41,7 +48,10 @@ export default function KcApp(props: { kcContext: KcContext }) {
           case "register.ftl":
             return (
               <Register
-                {...{ kcContext, i18n, Template, classes }}
+                kcContext={kcContext}
+                i18n={i18n}
+                Template={Template}
+                classes={classes}
                 doUseDefaultCss={true}
               />
             );
@@ -49,7 +59,10 @@ export default function KcApp(props: { kcContext: KcContext }) {
           case "terms.ftl":
             return (
               <Terms
-                {...{ kcContext, i18n, Template, classes }}
+                kcContext={kcContext}
+                i18n={i18n}
+                Template={Template}
+                classes={classes}
                 doUseDefaultCss={true}
               />
             );
@@ -57,8 +70,10 @@ export default function KcApp(props: { kcContext: KcContext }) {
           case "info.ftl":
             return (
               <Info
-                {...{ kcContext, i18n, classes }}
+                kcContext={kcContext}
+                i18n={i18n}
                 Template={Template}
+                classes={classes}
                 doUseDefaultCss={true}
               />
             );
@@ -66,7 +81,12 @@ export default function KcApp(props: { kcContext: KcContext }) {
           default:
             return (
               <DefaultPage
-                {...{ kcContext, i18n, Template, classes }}
+                kcContext={kcContext}
+                i18n={i18n}
+                Template={Template}
+                classes={classes}
+                UserProfileFormFields={UserProfileFormFields}
+                doMakeUserConfirmPassword={false}
                 doUseDefaultCss={true}
               />
             );

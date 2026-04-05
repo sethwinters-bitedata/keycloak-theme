@@ -20,7 +20,7 @@ const classes = {
 export default function KcApp(props: { kcContext: KcContext }) {
   const { kcContext } = props;
 
-  const i18n = useI18n({ kcContext });
+  const { i18n } = useI18n({ kcContext });
 
   if (i18n === null) {
     return null;
@@ -33,7 +33,10 @@ export default function KcApp(props: { kcContext: KcContext }) {
           case "password.ftl":
             return (
               <Password
-                {...{ kcContext, i18n, Template, classes }}
+                kcContext={kcContext}
+                i18n={i18n}
+                Template={Template}
+                classes={classes}
                 doUseDefaultCss={true}
               />
             );
